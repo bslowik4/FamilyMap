@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, Button, StyleSheet, Modal, FlatList, TouchableOpacity } from 'react-native';
-import MapView, { Marker, UrlTile, Region } from 'react-native-maps';
+import MapView, { Marker, Region } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList, Pin } from '../types';
@@ -111,11 +111,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         region={region}
         onLongPress={handleLongPress}
       >
-        <UrlTile
-          urlTemplate="http://c.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          maximumZ={19}
-          flipY={false}
-        />
         {pins.map((pin, index) => (
           <Marker
             key={index}
