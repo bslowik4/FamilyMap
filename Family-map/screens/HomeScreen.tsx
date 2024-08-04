@@ -3,11 +3,15 @@ import { View, Text, TextInput, Button, StyleSheet, Modal, FlatList, TouchableOp
 import MapView, { Marker, Region } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { RootStackParamList, Pin } from '../types';
+import { RootStackParamList, Pin } from '../types'; // Adjust import path as needed
 
 type HomeScreenProps = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
 const NOMINATIM_BASE_URL = "https://nominatim.openstreetmap.org/search?format=json&limit=5&q=";
+
+const ZOOM_LEVEL = 14;
+const LATITUDE_DELTA = 360 / Math.pow(2, ZOOM_LEVEL); // Approximate for zoom level 14
+const LONGITUDE_DELTA = 360 / Math.pow(2, ZOOM_LEVEL); // Approximate for zoom level 14
 
 const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const [pins, setPins] = useState<Pin[]>([]);
@@ -19,12 +23,14 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const [region, setRegion] = useState<Region>({
     latitude: 37.78825,
     longitude: -122.4324,
-    latitudeDelta: 0.0922,
-    longitudeDelta: 0.0421,
+    latitudeDelta: LATITUDE_DELTA,
+    longitudeDelta: LONGITUDE_DELTA,
   });
   const [query, setQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [selectedCoordinate, setSelectedCoordinate] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [selectedPin, setSelectedPin] = useState<Pin | null>(null);
 
   const updateLocation = async () => {
     try {
@@ -41,12 +47,11 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
       });
 
       setRegion({
-        ...region,
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
+        latitudeDelta: LATITUDE_DELTA,
+        longitudeDelta: LONGITUDE_DELTA,
       });
-
-      console.log("Updated user location:", location.coords.latitude, location.coords.longitude);
     } catch (error) {
       console.error("Error fetching location:", error);
     }
@@ -95,11 +100,29 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const handleSelectResult = (result: any) => {
     const { lat, lon } = result;
     setRegion({
-      ...region,
       latitude: parseFloat(lat),
       longitude: parseFloat(lon),
+      latitudeDelta: LATITUDE_DELTA,
+      longitudeDelta: LONGITUDE_DELTA,
     });
+    setSelectedCoordinate({ latitude: parseFloat(lat), longitude: parseFloat(lon) });
     setSearchResults([]);
+  };
+
+  const handleChangeMarkerToPin = () => {
+    if (selectedCoordinate) {
+      const newPin: Pin = {
+        coordinate: selectedCoordinate,
+        title: title,
+        description: description,
+        value: Number(value),
+      };
+      setPins([...pins, newPin]);
+      setSelectedCoordinate(null);
+      setTitle('');
+      setDescription('');
+      setValue('');
+    }
   };
 
   return (
@@ -133,7 +156,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           <Marker
             coordinate={location}
             title="You are here"
-            pinColor="blue" 
+            pinColor="blue"
           />
         )}
         {pins.map((pin, index) => (
@@ -144,6 +167,13 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             description={`Description: ${pin.description}, Value: ${pin.value}`}
           />
         ))}
+        {selectedCoordinate && (
+          <Marker
+            coordinate={selectedCoordinate}
+            title="Selected Location"
+            pinColor="red"
+          />
+        )}
       </MapView>
       
       <Button
@@ -184,6 +214,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
               keyboardType="numeric"
             />
             <Button title="Add Pin" onPress={handleAddPin} />
+            <Button title="Change Marker to Pin" onPress={handleChangeMarkerToPin} />
             <Button title="Cancel" onPress={() => setModalVisible(false)} />
           </View>
         </View>
