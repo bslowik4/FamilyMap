@@ -24,6 +24,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   });
   const [query, setQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -34,6 +35,10 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
       }
 
       let location = await Location.getCurrentPositionAsync({});
+      setLocation({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+      });
       setRegion({
         ...region,
         latitude: location.coords.latitude,
@@ -64,9 +69,12 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   };
 
   const handleSearch = async () => {
-    if (query.length > 2) {
+    if (query.length > 2 && location) {
+      const { latitude, longitude } = location;
+      const viewbox = `${longitude - 0.1},${latitude - 0.1},${longitude + 0.1},${latitude + 0.1}`;
+
       try {
-        const response = await fetch(`${NOMINATIM_BASE_URL}${query}`);
+        const response = await fetch(`${NOMINATIM_BASE_URL}${query}&viewbox=${viewbox}&bounded=1`);
         const data = await response.json();
         setSearchResults(data);
       } catch (error) {
