@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, Modal, FlatList, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, Button, StyleSheet, Modal, FlatList, TouchableOpacity, Alert } from 'react-native';
 import MapView, { Marker, Region } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -26,11 +26,11 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
 
-  useEffect(() => {
-    (async () => {
+  const updateLocation = async () => {
+    try {
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        console.error('Permission to access location was denied');
+        Alert.alert('Permission to access location was denied');
         return;
       }
 
@@ -39,12 +39,21 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
       });
+
       setRegion({
         ...region,
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
       });
-    })();
+
+      console.log("Updated user location:", location.coords.latitude, location.coords.longitude);
+    } catch (error) {
+      console.error("Error fetching location:", error);
+    }
+  };
+
+  useEffect(() => {
+    updateLocation();
   }, []);
 
   const handleLongPress = (event: any) => {
@@ -117,8 +126,16 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
       <MapView
         style={styles.map}
         region={region}
+        onRegionChangeComplete={setRegion}
         onLongPress={handleLongPress}
       >
+        {location && (
+          <Marker
+            coordinate={location}
+            title="You are here"
+            pinColor="blue" 
+          />
+        )}
         {pins.map((pin, index) => (
           <Marker
             key={index}
@@ -128,6 +145,11 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           />
         ))}
       </MapView>
+      
+      <Button
+        title="Update Location"
+        onPress={updateLocation}
+      />
       <Button
         title="View Details"
         onPress={() => navigation.navigate('Details', { pins })}
