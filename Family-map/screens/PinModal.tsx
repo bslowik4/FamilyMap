@@ -11,7 +11,6 @@ interface PinModalProps {
   value: string;
   setValue: React.Dispatch<React.SetStateAction<string>>;
   handleAddPin: () => void;
-  handleChangeMarkerToPin: () => void;
 }
 
 const PinModal: React.FC<PinModalProps> = ({
@@ -24,7 +23,6 @@ const PinModal: React.FC<PinModalProps> = ({
   value,
   setValue,
   handleAddPin,
-  handleChangeMarkerToPin,
 }) => {
   return (
     <Modal
@@ -56,7 +54,6 @@ const PinModal: React.FC<PinModalProps> = ({
             keyboardType="numeric"
           />
           <Button title="Add Pin" onPress={handleAddPin} />
-          <Button title="Change Marker to Pin" onPress={handleChangeMarkerToPin} />
           <Button title="Cancel" onPress={() => setModalVisible(false)} />
         </View>
       </View>

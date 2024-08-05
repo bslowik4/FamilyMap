@@ -5,15 +5,15 @@ import * as Location from 'expo-location';
 import { RootStackParamList, Pin } from '../types';
 import SearchBar from './SearchBar';
 import PinModal from './PinModal';
-import MapComponent from './Map';
+import Map from './Map';
 
 type HomeScreenProps = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
 const NOMINATIM_BASE_URL = "https://nominatim.openstreetmap.org/search?format=json&limit=5&q=";
 
 const ZOOM_LEVEL = 14;
-const LATITUDE_DELTA = 360 / Math.pow(2, ZOOM_LEVEL); 
-const LONGITUDE_DELTA = 360 / Math.pow(2, ZOOM_LEVEL); 
+const LATITUDE_DELTA = 360 / Math.pow(2, ZOOM_LEVEL);
+const LONGITUDE_DELTA = 360 / Math.pow(2, ZOOM_LEVEL);
 
 const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const [pins, setPins] = useState<Pin[]>([]);
@@ -32,7 +32,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [selectedCoordinate, setSelectedCoordinate] = useState<{ latitude: number; longitude: number } | null>(null);
-  const [selectedPin, setSelectedPin] = useState<Pin | null>(null);
 
   const updateLocation = async () => {
     try {
@@ -108,17 +107,9 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 
   const handleChangeMarkerToPin = () => {
     if (selectedCoordinate) {
-      const newPin: Pin = {
-        coordinate: selectedCoordinate,
-        title: title,
-        description: description,
-        value: Number(value),
-      };
-      setPins([...pins, newPin]);
+      setCurrentCoordinate(selectedCoordinate);
       setSelectedCoordinate(null);
-      setTitle('');
-      setDescription('');
-      setValue('');
+      setModalVisible(true);
     }
   };
 
@@ -132,7 +123,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         handleSelectResult={handleSelectResult}
       />
 
-      <MapComponent
+      <Map
         region={region}
         location={location}
         pins={pins}
@@ -150,6 +141,12 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         title="View Details"
         onPress={() => navigation.navigate('Details', { pins })}
       />
+      
+      <Button
+        title="Change Marker to Pin"
+        onPress={handleChangeMarkerToPin}
+        disabled={!selectedCoordinate}
+      />
 
       <PinModal
         modalVisible={modalVisible}
@@ -161,7 +158,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         value={value}
         setValue={setValue}
         handleAddPin={handleAddPin}
-        handleChangeMarkerToPin={handleChangeMarkerToPin}
       />
     </View>
   );
