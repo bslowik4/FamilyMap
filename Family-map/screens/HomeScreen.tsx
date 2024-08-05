@@ -1,17 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, Modal, FlatList, TouchableOpacity, Alert } from 'react-native';
-import MapView, { Marker, Region } from 'react-native-maps';
-import * as Location from 'expo-location';
+import { View, Button, StyleSheet, Alert } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { RootStackParamList, Pin } from '../types'; // Adjust import path as needed
+import * as Location from 'expo-location';
+import { RootStackParamList, Pin } from '../types';
+import SearchBar from './SearchBar';
+import PinModal from './PinModal';
+import MapComponent from './Map';
 
 type HomeScreenProps = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
 const NOMINATIM_BASE_URL = "https://nominatim.openstreetmap.org/search?format=json&limit=5&q=";
 
 const ZOOM_LEVEL = 14;
-const LATITUDE_DELTA = 360 / Math.pow(2, ZOOM_LEVEL); // Approximate for zoom level 14
-const LONGITUDE_DELTA = 360 / Math.pow(2, ZOOM_LEVEL); // Approximate for zoom level 14
+const LATITUDE_DELTA = 360 / Math.pow(2, ZOOM_LEVEL); 
+const LONGITUDE_DELTA = 360 / Math.pow(2, ZOOM_LEVEL); 
 
 const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const [pins, setPins] = useState<Pin[]>([]);
@@ -20,7 +22,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [value, setValue] = useState('');
-  const [region, setRegion] = useState<Region>({
+  const [region, setRegion] = useState({
     latitude: 37.78825,
     longitude: -122.4324,
     latitudeDelta: LATITUDE_DELTA,
@@ -61,27 +63,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     updateLocation();
   }, []);
 
-  const handleLongPress = (event: any) => {
-    setCurrentCoordinate(event.nativeEvent.coordinate);
-    setModalVisible(true);
-  };
-
-  const handleAddPin = () => {
-    if (currentCoordinate) {
-      const newPin: Pin = {
-        coordinate: currentCoordinate,
-        title: title,
-        description: description,
-        value: Number(value),
-      };
-      setPins([...pins, newPin]);
-      setTitle('');
-      setDescription('');
-      setValue('');
-      setModalVisible(false);
-    }
-  };
-
   const handleSearch = async () => {
     if (query.length > 2 && location) {
       const { latitude, longitude } = location;
@@ -109,6 +90,22 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     setSearchResults([]);
   };
 
+  const handleAddPin = () => {
+    if (currentCoordinate) {
+      const newPin: Pin = {
+        coordinate: currentCoordinate,
+        title: title,
+        description: description,
+        value: Number(value),
+      };
+      setPins([...pins, newPin]);
+      setTitle('');
+      setDescription('');
+      setValue('');
+      setModalVisible(false);
+    }
+  };
+
   const handleChangeMarkerToPin = () => {
     if (selectedCoordinate) {
       const newPin: Pin = {
@@ -127,55 +124,24 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.searchContainer}>
-        <TextInput
-          placeholder="Search"
-          style={styles.searchInput}
-          value={query}
-          onChangeText={setQuery}
-          onSubmitEditing={handleSearch}
-        />
-        <FlatList
-          data={searchResults}
-          keyExtractor={(item) => item.place_id}
-          renderItem={({ item }) => (
-            <TouchableOpacity onPress={() => handleSelectResult(item)}>
-              <Text style={styles.resultText}>{item.display_name}</Text>
-            </TouchableOpacity>
-          )}
-        />
-      </View>
+      <SearchBar
+        query={query}
+        setQuery={setQuery}
+        searchResults={searchResults}
+        handleSearch={handleSearch}
+        handleSelectResult={handleSelectResult}
+      />
 
-      <MapView
-        style={styles.map}
+      <MapComponent
         region={region}
-        onRegionChangeComplete={setRegion}
-        onLongPress={handleLongPress}
-      >
-        {location && (
-          <Marker
-            coordinate={location}
-            title="You are here"
-            pinColor="blue"
-          />
-        )}
-        {pins.map((pin, index) => (
-          <Marker
-            key={index}
-            coordinate={pin.coordinate}
-            title={pin.title}
-            description={`Description: ${pin.description}, Value: ${pin.value}`}
-          />
-        ))}
-        {selectedCoordinate && (
-          <Marker
-            coordinate={selectedCoordinate}
-            title="Selected Location"
-            pinColor="red"
-          />
-        )}
-      </MapView>
-      
+        location={location}
+        pins={pins}
+        selectedCoordinate={selectedCoordinate}
+        setRegion={setRegion}
+        setCurrentCoordinate={setCurrentCoordinate}
+        setModalVisible={setModalVisible}
+      />
+
       <Button
         title="Update Location"
         onPress={updateLocation}
@@ -185,40 +151,18 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         onPress={() => navigation.navigate('Details', { pins })}
       />
 
-      <Modal
-        visible={modalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Add New Pin</Text>
-            <TextInput
-              placeholder="Title"
-              style={styles.input}
-              value={title}
-              onChangeText={setTitle}
-            />
-            <TextInput
-              placeholder="Description"
-              style={styles.input}
-              value={description}
-              onChangeText={setDescription}
-            />
-            <TextInput
-              placeholder="Value"
-              style={styles.input}
-              value={value}
-              onChangeText={setValue}
-              keyboardType="numeric"
-            />
-            <Button title="Add Pin" onPress={handleAddPin} />
-            <Button title="Change Marker to Pin" onPress={handleChangeMarkerToPin} />
-            <Button title="Cancel" onPress={() => setModalVisible(false)} />
-          </View>
-        </View>
-      </Modal>
+      <PinModal
+        modalVisible={modalVisible}
+        setModalVisible={setModalVisible}
+        title={title}
+        setTitle={setTitle}
+        description={description}
+        setDescription={setDescription}
+        value={value}
+        setValue={setValue}
+        handleAddPin={handleAddPin}
+        handleChangeMarkerToPin={handleChangeMarkerToPin}
+      />
     </View>
   );
 };
@@ -226,54 +170,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  map: {
-    flex: 1,
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  modalContent: {
-    backgroundColor: 'white',
-    padding: 20,
-    borderRadius: 10,
-    width: '80%',
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  input: {
-    borderColor: 'gray',
-    borderWidth: 1,
-    marginBottom: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 5,
-  },
-  searchContainer: {
-    position: 'absolute',
-    top: 10,
-    width: '100%',
-    zIndex: 1,
-    backgroundColor: 'white',
-  },
-  searchInput: {
-    height: 40,
-    borderColor: 'gray',
-    borderWidth: 1,
-    margin: 10,
-    paddingHorizontal: 10,
-    borderRadius: 5,
-  },
-  resultText: {
-    padding: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ccc',
   },
 });
 
